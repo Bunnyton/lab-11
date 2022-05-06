@@ -37,6 +37,9 @@ find_package(Async++ CONFIG REQUIRED)
 hunter_add_package(Boost COMPONENTS program_options)
 find_package(Boost CONFIG REQUIRED program_options)
 
+hunter_add_package(Boost COMPONENTS filesystem system iostreams regex random thread)
+find_package(Boost CONFIG REQUIRED filesystem system iostreams regex random thread)
+
 hunter_add_package(BoostProcess)
 find_package(BoostProcess CONFIG REQUIRED)
 
@@ -59,6 +62,12 @@ target_link_libraries(demo ${PROJECT_NAME})
 target_link_libraries(${PROJECT_NAME}
         Async++::Async++
         Boost::program_options
+        Boost::filesystem
+        Boost::system
+        Boost::iostreams
+        Boost::regex
+        Boost::random
+        Boost::thread
         BoostProcess::boost_process
         )
 
