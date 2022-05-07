@@ -1,4 +1,4 @@
-// Copyright 2021 Your Name <your_email>
+// Copyright 2022 VladislavRz <rzhevskii_vladislav@mail.ru>
 
 #include <stdexcept>
 
