@@ -1,9 +1,8 @@
+#include <string>
+#include <iostream>
 #include <async++.h>
-
 #include <boost/process.hpp>
 #include <boost/program_options.hpp>
-#include <iostream>
-#include <string>
 
 namespace bp = boost::process;
 namespace po = boost::program_options;
@@ -15,14 +14,36 @@ struct CmdArgs {
   bool pack;
 };
 
+bool parse_cmd(int argc, char* argv[], CmdArgs& args);
+int build(CmdArgs& args);
+
+int main(int argc, char* argv[]) {
+  try {
+    // Parse command line
+    CmdArgs args;
+    if (!parse_cmd(argc, argv, args)) return 0;
+
+    // Run build
+    return build(args);
+
+  } catch (std::exception& e) {
+    std::cout << "Exception: " << e.what() << std::endl;
+    return 1;
+  } catch (...) {
+    std::cout << "Exception: Unknown error!" << std::endl;
+    return 1;
+  }
+}
+
 bool parse_cmd(int argc, char* argv[], CmdArgs& args) {
   // Add options
   po::options_description desc("Allowed options");
   desc.add_options()("help, h", "produce help message")(
       "config", po::value<std::string>(&args.config)->default_value("Debug"),
-      "build configuration")("install",
-                             "add install stage (in _install directory)")(
-      "pack", "add pack stage (tar.gz)")(
+      "build configuration")
+      ("install",
+       "add install stage (in _install directory)")
+      ("pack", "add pack stage (tar.gz)")(
       "timeout", po::value<int>(&args.timeout)->default_value(30),
       "wait time (in seconds)");
 
@@ -42,8 +63,8 @@ bool parse_cmd(int argc, char* argv[], CmdArgs& args) {
 
   // Check errors
   if (args.config != "Debug" && args.config != "Release") {
-    std::cout << "Config should be Debug|Release, but it is " << args.config
-              << std::endl;
+    std::cout << "Config should be Debug|Release, but it is "
+              << args.config << std::endl;
     return false;
   }
 
@@ -110,20 +131,4 @@ int build(CmdArgs& args) {
 
   // Wait exit code
   return events.back().get();
-}
-
-int main(int argc, char* argv[]) {
-  try {
-    CmdArgs args;
-
-    if (!parse_cmd(argc, argv, args)) return 0;
-
-    return build(args);
-  } catch (std::exception& e) {
-    std::cout << "Exception: " << e.what() << std::endl;
-    return 1;
-  } catch (...) {
-    std::cout << "Exception: Unknown error!" << std::endl;
-    return 1;
-  }
 }
