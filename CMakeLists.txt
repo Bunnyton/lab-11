@@ -37,8 +37,8 @@ find_package(Async++ CONFIG REQUIRED)
 hunter_add_package(Boost COMPONENTS program_options)
 find_package(Boost CONFIG REQUIRED program_options)
 
-hunter_add_package(Boost COMPONENTS filesystem system iostreams regex random thread)
-find_package(Boost CONFIG REQUIRED filesystem system iostreams regex random thread)
+hunter_add_package(Boost COMPONENTS filesystem system iostreams regex random thread timer)
+find_package(Boost CONFIG REQUIRED filesystem system iostreams regex random thread timer)
 
 hunter_add_package(BoostProcess)
 find_package(BoostProcess CONFIG REQUIRED)
@@ -69,6 +69,7 @@ target_link_libraries(${PROJECT_NAME}
         Boost::random
         Boost::thread
         BoostProcess::boost_process
+        Boost::timer
         )
 
 if(BUILD_TESTS)
