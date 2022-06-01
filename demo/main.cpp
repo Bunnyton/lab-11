@@ -3,8 +3,13 @@
 #include <boost/program_options.hpp>
 #include <boost/process.hpp>
 #include <async++.h>
+#include <boost/process/mitigate.hpp>
+#include <boost/iostreams/device/file_descriptor.hpp>
+#include <boost/iostreams/stream.hpp>
 
 namespace bp = boost::process;
+namespace bpi = bp::initializers;
+namespace bi = boost::iostreams;
 namespace po = boost::program_options;
 
 class CmdArgs{
@@ -14,7 +19,7 @@ class CmdArgs{
   bool pack;
   int timeout;
 
-  CmdArgs() : confrel("Debug"), install(true), pack(true), timeout(10) {}
+  CmdArgs() : confrel("Debug"), install(false), pack(false), timeout(10) {}
 
   void parse(int argc, char *argv[]) {
     po::options_description desc("Allowed options");
@@ -60,31 +65,34 @@ int build(const CmdArgs &cmd) {
   const std::string build_3 = build_2 + "--target install";
   const std::string build_4 = build_2 + "--target package";
 
-  auto const task = [&cmd](const std::string &com, int prev_ec) {
-    if (!prev_ec) return prev_ec;
-    bp::child c(com, bp::std_out > stdout, bp::std_in > stdin); // FIXME
-    if (c.wait_for(std::chrono::seconds(cmd.timeout))) {
-      c.terminate;
-      throw std::runtime_error("Timeout is over");
+  auto const task = [&](const std::string &com, int prev_ec)
+      -> int {
+     if (prev_ec) return prev_ec;
+    bp::child c(com, bp::std_out > stdout, bp::std_err > stderr);
+    if (!c.wait_for(std::chrono::seconds(cmd.timeout))) {
+      c.terminate();
+      throw std::runtime_error("Wait time is over.");
     }
+    c.wait();
     return c.exit_code();
   };
 
-  auto task1 = async::spawn(task(build1, 0));
+  auto task1 = async::spawn([&]()-> int {return task(build1, 0);});
   auto task2 = task1.then(
-      ([&](int prev_ec)->int { return task(build_2, prev_ec);})
+      ([&](int prev_ec)->int {return task(build_2, prev_ec);})
                                                                   );
-  auto task_prev = task2;
+  auto& task_prev = task2;
   if (cmd.install)
   task_prev = task2.then(
-      ([&](int prev_ec)->int { return task(build_3, prev_ec);})
+      ([&](int prev_ec)->int {return task(build_3, prev_ec);})
                                                                   );
   if (cmd.pack) {
     auto task4 = task_prev.then(
-        ([&](int prev_ec)->int { return task(build_4, prev_ec);}
-                                                                  );
+        [&](int prev_ec)->int { return task(build_4, prev_ec);}
+                                                              );
     return task4.get();
   }
+ return task_prev.get();
 }
 
 int main(int argc, char *argv[]) {
@@ -95,6 +103,8 @@ try {
 } catch(std::exception &ec) {
   std::cout << ec.what() << std::endl;
   exit(EXIT_FAILURE);
+} catch (...) {
+  std::cout << "unknown error";
 }
 
 }
